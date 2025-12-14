@@ -110,7 +110,7 @@ def send_secure_file(my_session: dict, recipient_email: str, file_path: str) -> 
   try:
     port = port_for_email(recipient_email)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(5.0)
+    sock.settimeout(15.0)
     sock.connect(("localhost", port))
 
     from_id = id_for_email(my_session["email"])

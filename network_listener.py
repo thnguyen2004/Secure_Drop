@@ -182,10 +182,12 @@ def _handle_secure_send_req(session: dict, req_msg: dict, conn: socket.socket, d
   # 1. Mutual Contact/Authentication Check (Scenario 9)
   my_contacts = get_my_contacts(session)
   sender_email = None
+  sender_name = "Unknown Contact"
   for email, info in my_contacts.items():
     # Check if sender is in contacts AND if their public key is the pinned one
     if id_for_email(email) == from_id and info.get("public_key") == from_pub:
       sender_email = email
+      sender_name = info.get("name", sender_email)
       break
 
   if not sender_email:
@@ -199,7 +201,7 @@ def _handle_secure_send_req(session: dict, req_msg: dict, conn: socket.socket, d
     return
 
   # 3. User Approval (FIXED: simplified input to minimize shell conflict)
-  print(f"\nContact '{sender_email}' is sending file '{file_name}' ({file_size} bytes).")
+  print(f"Contact '{sender_name} <{sender_email}>'  is sending a file. Hit enter.")
   
   # IMPORTANT: This input() will momentarily interrupt the shell prompt in this terminal.
   ans = input("> Accept (y/n)? ").strip().lower() 
