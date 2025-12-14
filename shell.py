@@ -51,6 +51,9 @@ def handle_list(session: dict):
 
   for email in contacts:
     # Perform LIST1/LIST2 exchange to check if they are online
+    if email == session["email"]:
+      continue
+
     info = try_list_contact(session, email)
     if info:
       online.append(info)
