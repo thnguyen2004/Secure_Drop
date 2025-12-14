@@ -5,6 +5,7 @@ from storage import REG_PATH, read_json, write_json
 from crypto_utils import hash_password, verify_password
 
 def is_registered() -> bool:
+  # Checks if a user registration file exists
   data = read_json(REG_PATH, default=None)
   return isinstance(data, dict) and "email" in data
 
@@ -14,9 +15,11 @@ def register_user():
   if ans != "y":
     return None
 
+  # Get user information
   full_name = input("Enter Full Name: ").strip()
   email = input("Enter Email Address: ").strip()
 
+  # Get and check password
   pw1 = getpass("Enter Password: ")
   pw2 = getpass("Re-enter Password: ")
 
@@ -27,10 +30,12 @@ def register_user():
 
   pw_record = hash_password(pw1)
 
+  # Generate 2048-bit RSA key pair
   key = RSA.generate(2048)
   private_pem = key.export_key().decode("utf-8")
   public_pem = key.publickey().export_key().decode("utf-8")
 
+  # Build registration record
   reg = {
     "name": full_name,
     "email": email,
@@ -40,12 +45,15 @@ def register_user():
   }
 
   write_json(REG_PATH, reg)
+  
+  # Match the exact required output
   print("Passwords Match.")
   print("User Registered.")
   print("Exiting SecureDrop.")
   return None
 
 def login_loop():
+  # Load stored registration data
   reg = read_json(REG_PATH, default=None)
   if not reg:
     return None
@@ -54,16 +62,12 @@ def login_loop():
     email = input("Enter Email Address: ").strip()
     pw = getpass("Enter Password: ")
 
+    # Check email and verify password hash
     if email != reg.get("email") or not verify_password(pw, reg.get("password", {})):
       print("Email and Password Combination Invalid.")
       continue
-
-    session = {
-      "name": reg["name"],
-      "email": reg["email"],
-      "public_key": reg["public_key"],
-      "private_key": reg["private_key"]
-    }
+    
+    # Successful login output
     print("Welcome to SecureDrop.")
-    print('Type "help" For Commands.')
-    return session
+    print("Type \"help\" For Commands.")
+    return reg

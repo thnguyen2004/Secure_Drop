@@ -7,15 +7,21 @@ from Crypto.Signature import pkcs1_15
 from Crypto.Hash import SHA256
 from Crypto.Cipher import AES, PKCS1_OAEP
 
-PBKDF2_ITERS = 200_000
+PBKDF2_ITERS = 200_000 # Standard iteration count for password hashing
 
+# Base64 encoding/decoding utilities
 def _b64e(b: bytes) -> str:
   return base64.b64encode(b).decode("utf-8")
 
 def _b64d(s: str) -> bytes:
   return base64.b64decode(s.encode("utf-8"))
 
+def calculate_sha256(data: bytes) -> str:
+  # Calculates the SHA256 hash of a file's content
+  return hashlib.sha256(data).hexdigest()
+
 def hash_password(password: str) -> dict:
+  # Hashes a password using PBKDF2-HMAC-SHA256 with a random salt
   salt = os.urandom(16)
   dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, PBKDF2_ITERS, dklen=32)
   return {
@@ -25,6 +31,7 @@ def hash_password(password: str) -> dict:
   }
 
 def verify_password(password: str, record: dict) -> bool:
+  # Verifies a password against the stored hash record
   try:
     salt = _b64d(record["salt"])
     iters = int(record.get("iters", PBKDF2_ITERS))
@@ -34,40 +41,32 @@ def verify_password(password: str, record: dict) -> bool:
   except Exception:
     return False
 
-def sign_bytes(private_pem: str, payload: bytes) -> str:
-  key = RSA.import_key(private_pem.encode("utf-8"))
-  h = SHA256.new(payload)
-  sig = pkcs1_15.new(key).sign(h)
-  return base64.b64encode(sig).decode("utf-8")
+def sign_bytes(private_pem: str, data: bytes) -> str:
+  # Signs bytes using the private key (for non-repudiation)
+  private_key = RSA.import_key(private_pem.encode("utf-8"))
+  h = SHA256.new(data)
+  signature = pkcs1_15.new(private_key).sign(h)
+  return _b64e(signature)
 
-def verify_sig(public_pem: str, payload: bytes, sig_b64: str) -> bool:
+def verify_sig(public_pem: str, data: bytes, sig_b64: str) -> bool:
+  # Verifies a signature using the public key
   try:
-    key = RSA.import_key(public_pem.encode("utf-8"))
-    h = SHA256.new(payload)
-    sig = base64.b64decode(sig_b64.encode("utf-8"))
-    pkcs1_15.new(key).verify(h, sig)
+    public_key = RSA.import_key(public_pem.encode("utf-8"))
+    sig = _b64d(sig_b64)
+    h = SHA256.new(data)
+    pkcs1_15.new(public_key).verify(h, sig)
     return True
   except Exception:
     return False
 
 def generate_aes_key() -> bytes:
-  """Generates a random 256-bit AES key."""
-  return os.urandom(32) # 256 bits
+  # Generates a random 256-bit AES key
+  return os.urandom(32)
 
-def encrypt_file(file_path: str, key: bytes) -> dict:
-  """
-  Encrypts a file using AES-256-GCM.
-  Returns {ciphertext, nonce, tag, original_hash}.
-  """
-  with open(file_path, "rb") as f:
-    plaintext = f.read()
-
-  # Calculate SHA256 hash of the original file for integrity check (Milestone 5, point 1)
-  original_hash = hashlib.sha256(plaintext).hexdigest()
-
+def encrypt_file(plaintext_bytes: bytes, key: bytes, original_hash: str) -> dict:
+  # Encrypts file data using AES-256-GCM (provides confidentiality and integrity)
   cipher = AES.new(key, AES.MODE_GCM)
-  ciphertext, tag = cipher.encrypt_and_digest(plaintext)
-
+  ciphertext, tag = cipher.encrypt_and_digest(plaintext_bytes)
   return {
     "ciphertext": _b64e(ciphertext),
     "nonce": _b64e(cipher.nonce),
@@ -76,40 +75,31 @@ def encrypt_file(file_path: str, key: bytes) -> dict:
   }
 
 def decrypt_file(data: dict, key: bytes) -> bytes | None:
-  """
-  Decrypts file data and verifies the integrity tag.
-  Returns the plaintext bytes, or None if decryption/integrity fails.
-  """
+  # Decrypts file data and verifies the GCM tag for integrity
   try:
     ciphertext = _b64d(data["ciphertext"])
     nonce = _b64d(data["nonce"])
     tag = _b64d(data["tag"])
-
     cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
     plaintext = cipher.decrypt_and_verify(ciphertext, tag)
     return plaintext
   except Exception:
-    # Decryption or Tag verification failed (integrity check)
-    return None
+    return None 
 
 def wrap_aes_key(aes_key: bytes, public_pem: str) -> str:
-  """Encrypts the AES key using the recipient's public key (RSA-OAEP)."""
+  # Encrypts the symmetric AES key using the recipient's RSA public key (OAEP)
   pub_key = RSA.import_key(public_pem.encode("utf-8"))
   cipher_rsa = PKCS1_OAEP.new(pub_key)
   wrapped_key = cipher_rsa.encrypt(aes_key)
   return _b64e(wrapped_key)
 
 def unwrap_aes_key(wrapped_key_b64: str, private_pem: str) -> bytes | None:
-  """Decrypts the AES key using the client's private key (RSA-OAEP)."""
+  # Decrypts the symmetric AES key using the client's RSA private key (OAEP)
   try:
-    priv_key = RSA.import_key(private_pem.encode("utf-8"))
-    cipher_rsa = PKCS1_OAEP.new(priv_key)
+    private_key = RSA.import_key(private_pem.encode("utf-8"))
+    cipher_rsa = PKCS1_OAEP.new(private_key)
     wrapped_key = _b64d(wrapped_key_b64)
     aes_key = cipher_rsa.decrypt(wrapped_key)
     return aes_key
   except Exception:
     return None
-
-def calculate_sha256(data: bytes) -> str:
-  """Calculates the SHA256 hash of raw bytes."""
-  return hashlib.sha256(data).hexdigest()
