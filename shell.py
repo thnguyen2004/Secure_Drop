@@ -1,5 +1,5 @@
 from contacts import add_contact, get_my_contacts
-from network_client import try_list_contact
+from network_client import try_list_contact, send_secure_file # Import the new transfer function
 
 def run_shell(session: dict):
   while True:
@@ -9,10 +9,10 @@ def run_shell(session: dict):
       continue
 
     if cmdline == "help":
-      print('"add" -> Add a new contact')
-      print('"list" -> List all online contacts')
-      print('"send" -> Transfer file to contact')
-      print('"exit" -> Exit SecureDrop')
+      print('\"add\" -> Add a new contact')
+      print('\"list\" -> List all online contacts')
+      print('\"send\" -> Transfer file to contact')
+      print('\"exit\" -> Exit SecureDrop')
       continue
 
     if cmdline == "add":
@@ -24,15 +24,24 @@ def run_shell(session: dict):
         continue
 
     if cmdline.startswith("send"):
-      # Milestone 5 replaces this with actual transfer logic
-      print("Send is not implemented yet.")
+      parts = cmdline.split()
+      if len(parts) != 3:
+        # Scenario 8 & 9 are handled within send_secure_file logic
+        print("Usage: send <contact_email> <local_file_path>")
+        continue
+      
+      recipient_email = parts[1]
+      local_file_path = parts[2]
+      
+      # Call the Milestone 5 transfer function
+      send_secure_file(session, recipient_email, local_file_path)
       continue
 
     if cmdline == "exit":
       return
 
     # Incorrect command should not crash or exit (scenario #6)
-    print('Unknown command. Type "help" for commands.')
+    print('Unknown command. Type \"help\" for commands.')
 
 
 def handle_list(session: dict):
@@ -40,6 +49,7 @@ def handle_list(session: dict):
   online = []
 
   for email in contacts:
+    # try_list_contact handles the LIST1/LIST2 protocol for mutual authentication
     info = try_list_contact(session, email)
     if info:
       online.append(info)
