@@ -8,3 +8,6 @@ def port_for_email(email: str) -> int:
   digest = hashlib.sha256(email.encode("utf-8")).digest()
   value = int.from_bytes(digest[:2], "big")
   return BASE_PORT + (value % PORT_RANGE)
+
+def id_for_email(email: str) -> str:
+  return hashlib.sha256(email.strip().lower().encode("utf-8")).hexdigest()

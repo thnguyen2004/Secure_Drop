@@ -37,3 +37,18 @@ def get_my_contacts(session: dict) -> dict:
 def dump_contacts_file():
   root = _load_contacts_root()
   return root
+
+def upsert_contact_public_key(session: dict, email: str, public_key: str):
+  root = _load_contacts_root()
+  me = session["email"]
+
+  if me not in root:
+    return
+
+  if email not in root[me].get("contacts", {}):
+    return
+
+  root[me]["contacts"][email]["public_key"] = public_key
+  root[me]["contacts"][email]["confirmed"] = True
+
+  _save_contacts_root(root)
