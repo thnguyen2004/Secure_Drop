@@ -1,6 +1,6 @@
 import socket
 import json
-from network import LISTEN_PORT, BUFFER_SIZE
+from network import port_for_email, BUFFER_SIZE
 
 def try_list_contact(my_session: dict, contact_email: str) -> dict | None:
   """
@@ -8,9 +8,12 @@ def try_list_contact(my_session: dict, contact_email: str) -> dict | None:
   """
   try:
     # In this project, hostname == email mapping is assumed via container DNS
+    port = port_for_email(contact_email)
+    print(f"[CLIENT] Attempting {contact_email} on localhost:{port}")
+
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(1.5)
-    sock.connect((contact_email, LISTEN_PORT))
+    sock.connect(("localhost", port))
 
     msg = {
       "type": "LIST_REQUEST",
@@ -19,6 +22,7 @@ def try_list_contact(my_session: dict, contact_email: str) -> dict | None:
     }
 
     sock.sendall(json.dumps(msg).encode("utf-8"))
+    sock.shutdown(socket.SHUT_WR)
     data = sock.recv(BUFFER_SIZE)
 
     resp = json.loads(data.decode("utf-8"))
