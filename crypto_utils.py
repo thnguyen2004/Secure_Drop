@@ -8,6 +8,7 @@ from Crypto.Hash import SHA256
 from Crypto.Cipher import AES, PKCS1_OAEP
 
 PBKDF2_ITERS = 200_000 # Standard iteration count for password hashing
+KEY_DERIVATION_DKLEN = 32
 
 # Base64 encoding/decoding utilities
 def _b64e(b: bytes) -> str:
@@ -102,4 +103,42 @@ def unwrap_aes_key(wrapped_key_b64: str, private_pem: str) -> bytes | None:
     aes_key = cipher_rsa.decrypt(wrapped_key)
     return aes_key
   except Exception:
+    return None
+
+def derive_key_from_password(password: str, record: dict) -> bytes:
+  """Derives a symmetric key (AES-256) from the password and the password record's salt/iters."""
+  try:
+    salt = _b64d(record["salt"])
+    iters = int(record.get("iters", PBKDF2_ITERS))
+    # Use a fixed key length of 32 bytes (256 bits) for the AES key
+    return hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iters, dklen=KEY_DERIVATION_DKLEN)
+  except Exception:
+    return b'' # Return empty bytes on failure
+
+def encrypt_private_key(private_pem: str, key: bytes) -> dict:
+  """Encrypts the private key PEM string using AES-256-GCM."""
+  private_key_bytes = private_pem.encode("utf-8")
+  cipher = AES.new(key, AES.MODE_GCM)
+  ciphertext, tag = cipher.encrypt_and_digest(private_key_bytes)
+  return {
+    "ciphertext": _b64e(ciphertext),
+    "nonce": _b64e(cipher.nonce),
+    "tag": _b64e(tag),
+  }
+
+def decrypt_private_key(encrypted_data: dict, key: bytes) -> str | None:
+  """
+  Decrypts the private key PEM string using AES-256-GCM.
+  Returns the plaintext PEM string, or None if decryption/integrity fails.
+  """
+  try:
+    ciphertext = _b64d(encrypted_data["ciphertext"])
+    nonce = _b64d(encrypted_data["nonce"])
+    tag = _b64d(encrypted_data["tag"])
+
+    cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
+    private_key_bytes = cipher.decrypt_and_verify(ciphertext, tag)
+    return private_key_bytes.decode("utf-8")
+  except Exception:
+    # Decryption or Tag verification failed (data corruption or wrong key)
     return None
