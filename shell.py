@@ -65,4 +65,4 @@ def handle_list(session: dict):
   print("The following contacts are online:")
   for c in online:
     # Match the exact PDF output format: "* Bob"
-    print(f'* {c["name"]}')
+    print(f'* {c["name"]} <{c["email"]}>')

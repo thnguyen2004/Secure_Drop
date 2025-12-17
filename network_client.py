@@ -159,7 +159,7 @@ def send_secure_file(my_session: dict, contact_email: str, file_path: str) -> bo
       print("Error: Recipient authentication failed during ACK.")
       return False
 
-    print("Contact has accepted the transfer request.") # Match project output
+    print("Contact has accepted the transfer request.")
 
     # --- Step 3: Send Encrypted File Chunks ---
     sock.sendall(encrypted_bytes)
@@ -173,14 +173,14 @@ def send_secure_file(my_session: dict, contact_email: str, file_path: str) -> bo
     final_resp = json.loads(final_resp_data.decode("utf-8").strip())
 
     if final_resp.get("type") == "SEND_DONE" and final_resp.get("success"):
-      print("File has been successfully transferred.") # Match project output
+      print("File has been successfully transferred.")
       return True
     else:
       print(f"Error: File integrity check failed on recipient side. ({final_resp.get('reason', 'Unknown')})")
       return False
 
   except socket.timeout:
-    print("A network or protocol error occurred: timed out") # Match requested output
+    print("A network or protocol error occurred: timed out")
     return False
   except ConnectionRefusedError:
     print("A network or protocol error occurred: Connection refused (Recipient is likely offline).")

@@ -22,7 +22,7 @@ def register_user():
     return None
 
   # Get user information
-  full_name = input("Enter Full Name: ").strip()
+  full_name = input("\nEnter Full Name: ").strip()
   email = input("Enter Email Address: ").strip()
 
   # Get and check password
@@ -30,7 +30,7 @@ def register_user():
   pw2 = getpass("Re-enter Password: ")
 
   if pw1 != pw2:
-    print("Passwords Do Not Match.")
+    print("\nPasswords Do Not Match.")
     print("Exiting SecureDrop.")
     return None
 
@@ -57,7 +57,7 @@ def register_user():
   }
 
   write_json(REG_PATH, reg)
-  print("Passwords Match.")
+  print("\nPasswords Match.")
   print("User Registered.")
   print("Exiting SecureDrop.")
   return None
@@ -73,7 +73,7 @@ def login_loop() -> dict | None:
 
     # Scenario 2 & 3: Check email and password hash
     if email != reg.get("email") or not verify_password(pw, reg.get("password", {})):
-      print("Email and Password Combination Invalid.")
+      print("Email and Password Combination Invalid.\n")
       continue
     
     # 1. Password verified. Derive the symmetric key for decryption.
@@ -88,7 +88,7 @@ def login_loop() -> dict | None:
 
     if not private_pem:
       # Decryption/Integrity check failed
-      print("Email and Password Combination Invalid.")
+      print("Email and Password Combination Invalid.\n")
       continue
 
     # 3. Successful login
@@ -99,5 +99,6 @@ def login_loop() -> dict | None:
       "private_key": private_pem # Store the plaintext private key in the session
     }
     
-    print("Login Successful.")
+    print("Welcome to SecureDrop.")
+    print('Type "help" For Commands.\n')
     return session

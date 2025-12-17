@@ -165,8 +165,8 @@ def _handle_secure_send_req(session: dict, req_msg: dict, conn: socket.socket, d
     conn.sendall(json.dumps({"type": "SEND_ACK", "accepted": False, "reason": "Sender signature verification failed."}).encode("utf-8"))
     return
 
-  # 3. User Approval (MATCH PDF OUTPUT)
-  print(f"\nContact '{sender_name}' is sending a file. Accept (y/n)?")
+  # 3. User Approval
+  print(f"\nContact '{sender_name} <{sender_email}>' is sending a file. Press Enter.")
   ans = input("> Accept (y/n)? ").strip().lower() 
   
   if ans != "y":
@@ -207,7 +207,7 @@ def _handle_secure_send_req(session: dict, req_msg: dict, conn: socket.socket, d
     conn.sendall(json.dumps({"type": "SEND_DONE", "success": False, "reason": f"Network error: {e}"}).encode("utf-8"))
     return
 
-  # 6. Decrypt and Integrity Check (Scenario 10)
+  # 6. Decrypt and Integrity Check
   try:
     # Unwrap AES Key
     aes_key = unwrap_aes_key(wrapped_key, session["private_key"])
